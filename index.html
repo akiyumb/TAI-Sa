@@ -37,7 +37,46 @@
         }
         return gk_fileData[filename] || "";
         }
-        <!DOCTYPE html>
+       <script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -46,85 +85,129 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <style>
-    #contact {
-      background-image: url('https://via.placeholder.com/300x200?text=People+Playing+Mancala'), url('https://via.placeholder.com/300x200?text=African+Mancala+Boards');
-      background-size: cover, cover;
-      background-position: center, center;
-      background-blend-mode: overlay;
-      position: relative;
-    }
-    #contact::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
+    #sectionsContainer {
       width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5); /* Dark overlay for readability */
-      z-index: 1;
-    }
-    #contact > * {
+      min-height: 200px; /* Increased to accommodate more text */
+      overflow: hidden;
       position: relative;
-      z-index: 2;
     }
-    #galleryCarousel {
+    #sectionsCarousel {
+      width: 200%; /* Four panels */
       display: flex;
-      overflow-x: auto;
-      scroll-behavior: smooth;
-      -webkit-overflow-scrolling: touch;
-      padding: 1rem 0;
+      transition: transform 1.5s ease-in-out; /* Slower transition */
     }
-    .gallery-item {
-      flex: 0 0 auto;
-      width: 300px;
-      margin-right: 1rem;
-    }
-    .gallery-item img {
-      width: 100%;
-      height: auto;
+    .carousel-panel {
+      width: 25%; /* Each panel takes 25% */
+      flex-shrink: 0;
+      padding: 2.5rem; /* Increased padding for better spacing */
+      background-color: white;
       border-radius: 0.5rem;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+      text-align: left; /* Justified to the left */
+    }
+    .carousel-panel:hover {
+      transform: translateY(-5px); /* Slight lift on hover */
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+    #prevSectionBtn, #nextSectionBtn {
+      z-index: 10;
     }
   </style>
 </head>
 <body class="bg-gray-100 font-sans">
   <!-- Header -->
-  <header class="bg-blue-600 text-white p-4">
+  <header class="bg-blue-600 text-white p-4 relative">
     <div class="container mx-auto flex justify-between items-center">
+      <!-- Placeholder for TAI-Sa Logo with Full Name - Replace with actual logo URL -->
       <div>
         <span class="text-2xl font-bold">TAI-Sa</span>
       </div>
-      <nav class="space-x-4">
-        <a href="#home" class="hover:text-gray-200">Home</a>
-        <a href="#projects" class="hover:text-gray-200">Projects</a>
-        <a href="#gallery" class="hover:text-gray-200">Gallery</a>
-        <a href="#contact" class="hover:text-gray-200">Contact</a>
+      <nav class="space-x-4" id="navLinks">
+        <a href="#home">Home</a>
+        <a href="#about">About</a>
+        <a href="#projects">Projects</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#donate">Donate</a>
+        <a href="#contact">Contact</a>
       </nav>
     </div>
   </header>
 
   <!-- Home Section -->
-  <section id="home" class="py-16 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80');">
+  <section id="home" class="py-16 bg-cover bg-center" style="background-image:  url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80');">
     <div class="container mx-auto text-center text-white bg-black bg-opacity-50 p-6 rounded-lg">
       <h1 class="text-4xl font-bold mb-4">Welcome to TAI-Sa</h1>
-      <p class="text-black text-lg mt-2">(Tradition and Arts for Isolo and Science)</p>
+      <p class="text-white text-lg mt-2">...Tradition and Arts for Isolo and Science...</p>
       <p class="text-lg">Empowering rural youth through science, tradition, and education.</p>
+    </div>
+  </section>
+
+  <!-- About Section with Sliding Carousel -->
+  <section id="about" class="py-8 bg-white">
+    <div class="container mx-auto">
+      <h2 class="text-2xl font-bold mb-8 text-center text-gray-800">About Us</h2>
+      <div id="sectionsContainer" class="relative w-full overflow-hidden">
+        <div class="flex transition-transform duration-1000 ease-in-out" id="sectionsCarousel">
+          <div class="carousel-panel">
+            <h3 class="text-1xl font-semibold mb-4 text-blue-600">About Us</h3>
+            <p class="text-gray-700 leading-relaxed">
+              TAI-Sa (Tradition and Arts for Isolo and Science) is a non-profit community-based organisation (CBO), Reg. No. MDC/CBO/4196, based in Magu District, Mwanza, Tanzania. We support young science students, promote traditional games like Mancala, and enhance educational opportunities in rural areas. The CBO is led by Mr. Amos Kiyumbi, a PhD candidate at Stellenbosch University and an academic staff at the University of Dar es Salaam (UDSM), we aim to train the next generation in nanotechnology and photonics.
+            </p>
+          </div>
+          <div class="carousel-panel">
+            <h3 class="text-1xl font-semibold mb-4 text-blue-600">Founding Story</h3>
+            <p class="text-gray-700 leading-relaxed">
+              TAI-Sa was founded in 2020 by Amos Kiyumbi to bridge the gap in rural education and preserve cultural heritage through Mancala and science. His vision was to combine traditional knowledge with modern scientific education to empower rural youth.
+            </p>
+          </div>
+          <div class="carousel-panel">
+            <h3 class="text-1xl font-semibold mb-4 text-blue-600">Our Board</h3>
+            <p class="text-gray-700 leading-relaxed">
+              Our board includes local leaders and educators dedicated to advancing TAI-Sa's mission in Magu District. They provide guidance and support to ensure our projects align with community needs.
+            </p>
+          </div>
+          <div class="carousel-panel">
+            <h3 class="text-1xl font-semibold mb-4 text-blue-600">Our Team</h3>
+            <p class="text-gray-700 leading-relaxed">
+              A passionate group of volunteers and professionals, including teachers and science enthusiasts, drive our projects. Their expertise and dedication are key to our success.
+            </p>
+          </div>
+        </div>
+        <button id="prevSectionBtn" class="absolute left-4 top-1/2 transform -translate-y-1/2  text-white p-3 rounded-full hover:bg-blue-700">
+          &lt;
+        </button>
+        <button id="nextSectionBtn" class="absolute right-4 top-1/2 transform -translate-y-1/2  text-white p-3 rounded-full hover:bg-blue-700">
+          &gt;
+        </button>
+      </div>
     </div>
   </section>
 
   <!-- Projects Section -->
   <section id="projects" class="py-8 bg-gray-100">
     <div class="container mx-auto">
-      <h2 class="text-2xl font-bold mb-8 text-center text-gray-800">Our Projects</h2>
-      <div class="space-y-6">
-        <div class="bg-white p-6 rounded-lg shadow-md">
-          <h3 class="text-xl font-semibold mb-2">Bed Project for Isendelo Secondary School</h3>
-          <p class="text-gray-700">Providing 20 beds for 40 female students preparing for national exams, ensuring a safe sleeping environment to boost academic success.</p>
+      <h2 class="text-2xl font-bold mb-4 text-center text-gray-800">Our Projects</h2>
+      <div class="relative w-full overflow-hidden">
+        <div class="flex transition-transform duration-500 ease-in-out" id="projectsCarousel">
+          <div class="bg-white p-6 rounded-lg shadow-md w-1/2 flex-shrink-0">
+            <h3 class="text-xl/2 font-semibold mb-2">Bed Project for Isendelo Secondary School</h3>
+            <p class="text-gray-700">Providing 20 beds for 40 female students preparing for national exams, ensuring a safe sleeping environment to boost academic success.</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg shadow-md w-1/2 flex-shrink-0">
+            <h3 class="text-xl/2 font-semibold mb-2">Science and Mancala Training</h3>
+            <p class="text-gray-700">Training rural students in science and traditional Mancala games to foster critical thinking and cultural preservation.</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg shadow-md w-1/2 flex-shrink-0">
+            <h3 class="text-xl/2 font-semibold mb-2">Our long-term plan</h3>
+            <p class="text-gray-700">Build and run a tuition-free TAI-Sa Science boarding school for financially disadvantaged students and young science frontiers in rural/village areas.</p
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-md">
-          <h3 class="text-xl font-semibold mb-2">Science and Mancala Training</h3>
-          <p class="text-gray-700">Training rural students in science and traditional Mancala games to foster critical thinking and cultural preservation.</p>
-        </div>
+        <button id="prevProjectsBtn" class="absolute left-4 top-1/2 transform -translate-y-1/2  text-white p-3 rounded-full hover:bg-blue-700">
+          &lt;
+        </button>
+        <button id="nextProjectsBtn" class="absolute right-4 top-1/2 transform -translate-y-1/2  text-white p-3 rounded-full hover:bg-blue-700">
+          &gt;
+        </button>
       </div>
     </div>
   </section>
@@ -133,34 +216,43 @@
   <section id="gallery" class="py-16 bg-white">
     <div class="container mx-auto">
       <h2 class="text-2xl font-bold mb-8 text-center text-gray-800">Gallery</h2>
-      <div id="galleryCarousel" class="relative w-full overflow-hidden">
-        <div class="flex space-x-4">
-          <div class="gallery-item">
-            <img src="https://via.placeholder.com/300x200?text=Bed+Project+Photo" alt="Bed Project Photo">
-          </div>
-          <div class="gallery-item">
-            <img src="https://via.placeholder.com/300x200?text=Mancala+Training+Photo" alt="Mancala Training Photo">
-          </div>
-          <div class="gallery-item">
-            <img src="https://via.placeholder.com/300x200?text=Students+Learning+Photo" alt="Students Learning Photo">
-          </div>
-          <div class="gallery-item">
-            <img src="https://via.placeholder.com/300x200?text=Community+Event+Photo" alt="Community Event Photo">
-          </div>
+      <div class="relative w-full overflow-hidden">
+        <div class="flex transition-transform duration-500 ease-in-out" id="galleryCarousel">
+          <img src="images/taisa_image.jpg" alt="TAI-Sa official logo" class="w-1/4 flex-shrink-0">
+                <img src="images/bao_1.JPG" alt="TAI-Sa official logo" class="w-1/4 flex-shrink-0">
+                <img src="images/bao_2.JPG" alt="TAI-Sa official logo" class="w-1/4 flex-shrink-0">
+                <img src="images/bao_3.JPG" alt="TAI-Sa official logo" class="w-1/4 flex-shrink-0">
+                <img src="images/head_office_new.jpg" alt="TAI-Sa official logo" class="w-1/4 flex-shrink-0">
         </div>
-        <p class="mt-4 text-center text-gray-600">*Images are placeholders. Please replace with actual photo URLs (e.g., upload to Imgur or Google Drive).</p>
+        <button id="prevBtn" class="absolute left-4 top-1/2 transform -translate-y-1/2  text-white p-3 rounded-full hover:bg-blue-700">
+          &lt;
+        </button>
+        <button id="nextBtn" class="absolute right-4 top-1/2 transform -translate-y-1/2  text-white p-3 rounded-full hover:bg-blue-700">
+          &gt;
+        </button>
       </div>
+      <p class="mt-4 text-center text-gray-600"></p>
+    </div>
+  </section>
+
+  <!-- Donate Section -->
+  <section id="donate" class="py-16 bg-gray-100">
+    <div class="container mx-auto text-center">
+      <h2 class="text-2xl font-bold mb-8 text-gray-800">Support Our Cause</h2>
+      <p class="text-gray-700 mb-4">Donate to provide beds or support science education. Contributions can be made as beds or funds.</p>
+      <button class=" text-blue px-6 py-3 rounded-lg hover:bg-blue-700">Donate Now</button>
+      <p class="mt-4 text-sm">Contact us for donation details: 0758376360 (Director, Mr. Amos Kiyumbi), 0759310902 (Coordinator, Mr. Thomas Lugendo).</p>
     </div>
   </section>
 
   <!-- Contact Section -->
-  <section id="contact" class="py-16">
-    <div class="container mx-auto text-center text-white">
-      <h2 class="text-2xl font-bold mb-8">Contact Us</h2>
-      <p class="mb-4">Reach out for more information or to arrange a visit.</p>
+  <section id="contact" class="py-16 bg-white">
+    <div class="container mx-auto text-center">
+      <h2 class="text-2xl font-bold mb-8 text-gray-800">Contact Us</h2>
+      <p class="text-gray-700 mb-4">Reach out for more information or to arrange a visit.</p>
       <div class="flex justify-center space-x-4">
-        <a href="tel:+255758376360" class="text-blue-200 hover:underline"><i class="fas fa-phone"></i> +255 758376360</a>
-        <a href="mailto:director@taisa.org.tz" class="text-blue-200 hover:underline"><i class="fas fa-envelope"></i> director@taisa.org.tz</a>
+        <a href="tel:+255758376360" class="text-blue-600 hover:underline"><i class="fas fa-phone"></i> +255 758376360</a>
+        <a href="mailto:director@taisa.org" class="text-blue-600 hover:underline"><i class="fas fa-envelope"></i> director@taisa.org.tz</a>
       </div>
     </div>
   </section>
@@ -169,5 +261,109 @@
   <footer class="bg-blue-600 text-white p-4 text-center">
     <p>&copy; 2025 TAI-Sa. All rights reserved.</p>
   </footer>
+
+  <script>
+    // Projects Carousel
+    const projectsCarousel = document.getElementById('projectsCarousel');
+    const prevProjectsBtn = document.getElementById('prevProjectsBtn');
+    const nextProjectsBtn = document.getElementById('nextProjectsBtn');
+    let projectsIndex = 0;
+    const totalProjects = projectsCarousel.children.length;
+    const projectItemWidth = 100 / totalProjects;
+
+    function updateProjectsCarousel() {
+      projectsCarousel.style.transform = `translateX(-${projectsIndex * projectItemWidth}%)`;
+    }
+
+    setInterval(() => {
+      projectsIndex = (projectsIndex + 1) % totalProjects;
+      updateProjectsCarousel();
+    }, 4000);
+
+    nextProjectsBtn.addEventListener('click', () => {
+      projectsIndex = (projectsIndex + 1) % totalProjects;
+      updateProjectsCarousel();
+    });
+
+    prevProjectsBtn.addEventListener('click', () => {
+      projectsIndex = (projectsIndex - 1 + totalProjects) % totalProjects;
+      updateProjectsCarousel();
+    });
+
+    // Gallery Carousel
+    const galleryCarousel = document.getElementById('galleryCarousel');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    let galleryIndex = 0;
+    const totalGalleryItems = galleryCarousel.children.length;
+    const galleryItemWidth = 100 / totalGalleryItems;
+
+    function updateGalleryCarousel() {
+      galleryCarousel.style.transform = `translateX(-${galleryIndex * galleryItemWidth}%)`;
+    }
+
+    setInterval(() => {
+      galleryIndex = (galleryIndex + 1) % totalGalleryItems;
+      updateGalleryCarousel();
+    }, 3000);
+
+    nextBtn.addEventListener('click', () => {
+      galleryIndex = (galleryIndex + 1) % totalGalleryItems;
+      updateGalleryCarousel();
+    });
+
+    prevBtn.addEventListener('click', () => {
+      galleryIndex = (galleryIndex - 1 + totalGalleryItems) % totalGalleryItems;
+      updateGalleryCarousel();
+    });
+
+    // Sections Carousel
+    const sectionsContainer = document.getElementById('sectionsContainer');
+    const sectionsCarousel = document.getElementById('sectionsCarousel');
+    const prevSectionBtn = document.getElementById('prevSectionBtn');
+    const nextSectionBtn = document.getElementById('nextSectionBtn');
+    let sectionIndex = 0;
+    let slideInterval;
+    const totalSections = sectionsCarousel.children.length;
+    const sectionItemWidth = 25; // 25% per panel
+
+    function updateSectionsCarousel() {
+      console.log("Updating to index:", sectionIndex); // Debug log
+      sectionsCarousel.style.transform = `translateX(-${sectionIndex * sectionItemWidth}%)`;
+    }
+
+    function startSlide() {
+      slideInterval = setInterval(() => {
+        if (!sectionsContainer.matches(':hover')) {
+          sectionIndex = (sectionIndex + 1) % totalSections;
+          updateSectionsCarousel();
+        }
+      }, 5000); // 5-second interval
+    }
+
+    function stopSlide() {
+      clearInterval(slideInterval);
+    }
+
+    sectionsContainer.addEventListener('mouseover', stopSlide);
+    sectionsContainer.addEventListener('mouseout', startSlide);
+
+    startSlide(); // Start the interval on load
+
+    nextSectionBtn.addEventListener('click', () => {
+      sectionIndex = (sectionIndex + 1) % totalSections;
+      updateSectionsCarousel();
+    });
+
+    prevSectionBtn.addEventListener('click', () => {
+      sectionIndex = (sectionIndex - 1 + totalSections) % totalSections;
+      updateSectionsCarousel();
+    });
+
+    // Ensure carousel initializes on page load
+    window.onload = function() {
+      if (sectionsCarousel) updateSectionsCarousel();
+    };
+  </script>
 </body>
 </html>
